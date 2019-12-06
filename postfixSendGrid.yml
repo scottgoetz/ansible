@@ -1,0 +1,371 @@
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+
+#This script sets up Postfix based mail server for use with GoPhish configured to forwards emails to SendGrid for final delivery to target:
+  #Change hostname
+  #Disable IPv6
+  #Install mail server realted packages
+  #Configure firewall rules
+  #Configure mail server to forward email to MailGun for final delivery to target
+  #Print DNS entries 
+
+#This script is primarily derived from these two sources:
+  #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
+
+---
+- hosts: mail
+
+  gather_facts: no
+
+  vars:
+    unpriv_user_name: <username> 
+
+    webRedirector_IPs:
+      - <IP1>
+      - <IP2>
+
+    lab_IPs:
+      - <IP1>
+      - <IP2>
+      - <IP3>
+      - <IP4>
+    
+    domain: <domain>.<com>
+
+    goPhishIP: <IP>
+
+    mailServerIP: <IP>
+
+    #Create a new user in SendGrid web interface
+    sendgridUsername: apikey
+    sendgridPassword: <sendGrid API key>
+
+    required_packages:
+      - dovecot-imapd
+      - dovecot-lmtpd
+      - postfix
+      - postgrey
+      - postfix-policyd-spf-python
+      - opendkim 
+      - opendkim-tools
+      - opendmarc
+      - mailutils
+      - golang-go
+      - procmail
+      - jq
+      - moreutils
+      - libsasl2-modules
+      - postfix-pcre
+    
+  tasks:    
+    #Ubuntu initialization
+    - name: Change hostname to "mail"
+      become: true
+      hostname:
+        name: "mail"
+
+    - name: Add new hostname to /etc/hosts
+      become: true
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: '127.0.0.1 localhost mail'
+        state: present
+
+    - name: Diable IPv6
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF >> /etc/sysctl.conf
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+          net.ipv6.conf.lo.disable_ipv6 = 1
+          net.ipv6.conf.eth0.disable_ipv6 = 1
+          net.ipv6.conf.eth1.disable_ipv6 = 1
+          net.ipv6.conf.ppp0.disable_ipv6 = 1
+          net.ipv6.conf.tun0.disable_ipv6 = 1
+          EOF
+      args:
+        executable: /bin/bash
+
+    #Install packages
+    - name: Set Postfix option hostname
+      become: true
+      debconf: 
+        name: postifx 
+        question: "postfix/mailname" 
+        value: "{{ domain }}"
+        vtype: "string"
+
+    - name: Set Postfix option type as internet site
+      become: true
+      debconf: 
+        name: postfix 
+        question: "postfix/main_mailer_type" 
+        value: "'Internet Site'" 
+        vtype: "string"
+
+    - name: Install required packages
+      become: true
+      apt: 
+        state: present
+        pkg: "{{ required_packages}}"
+
+    #Setup Firewall rules
+    - name: Firewall - Allow DNS traffic
+      become: true
+      ufw:
+        rule: allow
+        port: 53
+        proto: any
+        
+    - name: Firewall - Allow IMAP related port
+      become: true
+      ufw:
+        rule: allow
+        port: 993
+      with_items: 
+        - "{{ goPhishIP }}"
+        - "{{ lab_IPs }}"
+
+    - name: Firewall - Allow SMTP related port
+      become: true
+      ufw:
+        rule: allow
+        port: 587
+  
+    - name: Firewall - Allow SMTP related port
+      become: true
+      ufw:
+        rule: allow
+        port: 25
+
+    #Configure Postfix
+    ###The value of $myhostname will appear in the email headers
+    - name: Configure Postfix - modify /etc/postfix/main.cf
+      become: true
+      shell:
+        cmd: |
+          cat > /etc/postfix/main.cf << EOF
+          smtpd_banner = \$myhostname ESMTP \$mail_name (Debian/GNU)
+          biff = no
+          append_dot_mydomain = no
+          readme_directory = no
+          smtp_sasl_auth_enable = yes
+          smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+          smtp_sasl_security_options = noanonymous
+          smtp_sasl_tls_security_options = noanonymous
+          smtp_sasl_mechanism_filter = AUTH LOGIN
+          smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+          myhostname = mail.{{ domain }}
+          alias_maps = hash:/etc/aliases
+          alias_database = hash:/etc/aliases
+          myorigin = /etc/mailname
+          mydestination = {{ domain }}, localhost.{{ domain }}, localhost
+          relayhost = [smtp.sendgrid.net]:587
+          mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 {{ goPhishIP }}
+          mailbox_command = procmail -a "\$EXTENSION"
+          mailbox_size_limit = 0
+          recipient_delimiter = +
+          inet_interfaces = all
+          inet_protocols = ipv4
+          milter_default_action = accept
+          milter_protocol = 6
+          smtpd_milters = inet:12301,inet:localhost:54321
+          non_smtpd_milters = inet:12301,inet:localhost:54321
+          virtual_alias_maps = hash:/etc/postfix/virtual
+          EOF
+      args:
+        executable: /bin/bash
+    
+    - name: Configure Postfix - modify /etc/postfix/master.cf
+      become: true
+      shell:
+        cmd: |
+          cat >> /etc/postfix/master.cf << EOF
+          submission inet n       -       -       -       -       smtpd
+            -o syslog_name=postfix/submission
+            -o smtpd_tls_wrappermode=no
+            -o smtpd_tls_security_level=encrypt
+            -o smtpd_sasl_auth_enable=yes
+            -o smtpd_recipient_restrictions=permit_mynetworks,permit_sasl_authenticated,reject
+            -o milter_macro_daemon_name=ORIGINATING
+            -o smtpd_sasl_type=dovecot
+            -o smtpd_sasl_path=private/auth
+          EOF
+      args:
+        executable: /bin/bash
+###
+    - name: Configure Postfix - Modify /etc/postfix/sasl_passwd with Mailgun credentials
+      become: true
+      shell: 
+        cmd: echo -e '[smtp.sendgrid.net]:587 {{ sendgridUsername }}:{{ sendgridPassword }}' > /etc/postfix/sasl_passwd 
+      args:
+        executable: /bin/bash
+
+    - name: Configure Postfix - Postmap SASL
+      become: true
+      shell: postmap /etc/postfix/sasl_passwd 
+
+    - name: Configure Postfix - chown /etc/postfix/sasl_passwd 
+      become: true
+      file:
+        path: /etc/postfix/sasl_passwd 
+        owner: root
+        group: root
+        mode: 0600
+
+    - name: Configure Postfix - chown /etc/postfix/sasl_passwd.db 
+      become: true
+      file:
+        path: /etc/postfix/sasl_passwd.db 
+        owner: root
+        group: root
+        mode: 0600
+
+    - name: Configure Postfix - create blank file for /etc/postfix/virtual
+      become: true
+      file:
+        path: "/etc/postfix/virtual"
+        state: touch
+
+    - name: Configure Postfix - Modify /etc/postfix/virtual -- setup catchall email address
+      become: true
+      shell:
+        cmd: |
+          cat >> /etc/postfix/virtual << EOF
+          @{{domain}} {{unpriv_user_name}}
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Configure Postfix - Postmap /etc/postfix/virtual
+      become: true
+      shell: postmap /etc/postfix/virtual
+
+    #Configure Dovecot
+    - name: Configure Dovecot - modify /etc/dovecot/dovecot.conf
+      become: true
+      shell:
+        cmd: |  
+          cat > /etc/dovecot/dovecot.conf << EOF        
+          disable_plaintext_auth = no
+          mail_privileged_group = mail
+          mail_location = mbox:~/mail:INBOX=/var/mail/%u
+          
+          userdb {
+            driver = passwd
+          }
+          
+          passdb {
+            args = %s
+            driver = pam
+          }
+          
+          protocols = " imap"
+          
+          protocol imap {
+            mail_plugins = " autocreate"
+          }
+          
+          plugin {
+            autocreate = Trash
+            autocreate2 = Sent
+            autosubscribe = Trash
+            autosubscribe2 = Sent
+          }
+          
+          service imap-login {
+            inet_listener imap {
+              port = 0
+            }
+            inet_listener imaps {
+              port = 993
+            }
+          }
+          
+          service auth {
+            unix_listener /var/spool/postfix/private/auth {
+              group = postfix
+              mode = 0660
+              user = postfix
+            }
+          }
+          
+          EOF
+      args:
+        executable: /bin/bash  
+
+    #Linux account/user that will recieve email
+    - name: Set Linux account/user that will recieve email
+      become: true
+      shell: echo "{{ unpriv_user_name }}:" root >> /etc/aliases
+
+    - name: restart postfix
+      become: true
+      service:
+        name: postfix
+        state: restarted
+
+    - name: DNS Entries - Create dnsentries.txt
+      file:
+        path: "/home/{{ unpriv_user_name }}/dnsentries.txt"
+        state: touch
+
+    - name: DNS Entries - Generate DNS entries
+      become: true
+      shell: 
+        cmd: |
+          cat <<-EOF > "/home/{{ unpriv_user_name }}/dnsentries.txt"
+          DNS Entries for {{ domain }}:
+
+          ====================================================================
+          Namecheap - Enter under Advanced DNS
+
+          Record Type: A
+          Host: @
+          Value: <WEB REDIRECTOR IP>
+          TTL: 60 min
+
+          Record Type: A
+          Host: mail
+          Value: {{ mailServerIP }}
+          TTL: 60 min
+
+          Record Type: TXT
+          Host: @
+          Value: v=spf1 a mx ip4:{{ mailServerIP }} include:sendgrid.net ~all
+          TTL: 60 min
+
+          Record Type: CNAME
+          Host: s1._domainkey
+          Value: s1.<Value provided by SendGrid from "Sender Authentication">
+          TTL: 60 min
+
+          Record Type: CNAME
+          Host: s2._domainkey
+          Value: s2.<Value provided by SendGrid from "Sender Authentication">
+          TTL: 60 min
+
+          Record Type: CNAME
+          Host: <Value provided by SendGrid from "Sender Authentication">
+          Value: <Value provided by SendGrid from "Sender Authentication">
+          TTL: 60 min
+
+          Change Mail Settings to Custom MX and Add New Record
+          Record Type: MX
+          Host: @
+          Value: mail.{{ domain }}
+          Priority: 10
+          TTL: 60 min
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: DNS Entries - Obtain contents of dnsentries.txt
+      become: true
+      shell: cat "/home/{{ unpriv_user_name }}/dnsentries.txt"
+      register: dnsentries
+
+    - name: DNS Entries - Print DNS entries to screen
+      debug:
+        msg: "{{ dnsentries.stdout_lines }}"

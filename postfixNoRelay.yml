@@ -1,0 +1,519 @@
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+
+#This script sets up Postfix based mail server for use with GoPhish:
+  #Change hostname
+  #Disable IPv6
+  #Install mail server realted packages
+  #Configure firewall rules
+  #Upload SSL certs from Ansible Server
+  #Print DNS entries 
+
+#This script is primarily derived from these two sources:
+  #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
+
+---
+- hosts: mail
+
+  gather_facts: no
+
+  vars:
+    unpriv_user_name: <username> 
+
+    webRedirector_IPs:
+      - <IP1>
+      - <IP2>
+
+    lab_IPs:
+      - <IP1>
+      - <IP2>
+      - <IP3>
+      - <IP4>
+    
+    domain: <domain>.<com>
+
+    goPhishIP: <IP>
+
+    mailServerIP: <IP>
+
+    fullchainPath: "<path on Ansible Server>/<fullchain.crt>"
+    privkeyPath: "<path on Ansible Server>/<privkey.pem>"
+
+    required_packages:
+      - dovecot-imapd
+      - dovecot-lmtpd
+      - postfix
+      - postgrey
+      - postfix-policyd-spf-python
+      - opendkim 
+      - opendkim-tools
+      - opendmarc
+      - mailutils
+      - golang-go
+      - procmail
+      - jq
+      - moreutils
+      - libsasl2-modules
+      - postfix-pcre
+    
+  tasks:    
+    #Ubuntu initialization
+    - name: Change hostname to "mail"
+      become: true
+      hostname:
+        name: "mail"
+
+    - name: Add new hostname to /etc/hosts
+      become: true
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: '127.0.0.1 localhost mail'
+        state: present
+
+    - name: Diable IPv6
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF >> /etc/sysctl.conf
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+          net.ipv6.conf.lo.disable_ipv6 = 1
+          net.ipv6.conf.eth0.disable_ipv6 = 1
+          net.ipv6.conf.eth1.disable_ipv6 = 1
+          net.ipv6.conf.ppp0.disable_ipv6 = 1
+          net.ipv6.conf.tun0.disable_ipv6 = 1
+          EOF
+      args:
+        executable: /bin/bash
+
+    #Install packages
+    - name: Set Postfix option hostname
+      become: true
+      debconf: 
+        name: postifx 
+        question: "postfix/mailname" 
+        value: "{{ domain }}"
+        vtype: "string"
+
+    - name: Set Postfix option type as internet site
+      become: true
+      debconf: 
+        name: postfix 
+        question: "postfix/main_mailer_type" 
+        value: "'Internet Site'" 
+        vtype: "string"
+
+    - name: Install required packages
+      become: true
+      apt: 
+        state: present
+        pkg: "{{ required_packages}}"
+
+    #Setup Firewall rules
+    - name: Firewall - Allow to HTTP from lab and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 80
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ lab_IPs }}"
+
+    - name: Firewall - Allow access to HTTPS from lab and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 443
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ lab_IPs }}"
+        
+    - name: Firewall - Allow related port
+      become: true
+      ufw:
+        rule: allow
+        port: 993
+        src: "{{ item }}"
+      with_items: 
+        - "{{ goPhishIP }}"
+        - "{{ lab_IPs }}"
+
+    - name: Firewall - Allow SMTP related port
+      become: true
+      ufw:
+        rule: allow
+        port: 587
+  
+    - name: Firewall - Allow SMTP related port
+      become: true
+      ufw:
+        rule: allow
+        port: 25
+
+    #Upload SSL cert files from Ansible Server
+    - name: Upload SSL fullchain certificate file from Ansible Server
+      copy:
+        src: "{{ fullchainPath }}"
+        dest: "{{ domain }}_fullchain.crt"
+        
+    - name: Upload SSL privkey PEM file from Ansible Server
+      copy:
+        src: "{{ privkeyPath }}"
+        dest: "{{ domain }}_privkey.pem"
+
+    #Configure Postfix
+    ###The value of $myhostname will appear in the email headers
+    - name: Configure Postfix - modify /etc/postfix/main.cf
+      become: true
+      shell:
+        cmd: |
+          cat > /etc/postfix/main.cf << EOF
+          smtpd_banner = \$myhostname ESMTP \$mail_name (Debian/GNU)
+          biff = no
+          append_dot_mydomain = no
+          readme_directory = no
+          smtp_use_tls=yes
+          smtpd_tls_cert_file=/home/{{ unpriv_user_name }}/{{ domain }}_fullchain.crt
+          smtpd_tls_key_file=/home/{{ unpriv_user_name }}/{{ domain }}_privkey.pem
+          smtpd_tls_security_level = may
+          smtp_tls_security_level = encrypt
+          smtpd_tls_session_cache_database = btree:\${data_directory}/smtpd_scache
+          smtp_tls_session_cache_database = btree:\${data_directory}/smtp_scache
+          smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+          myhostname = mail.{{ domain }}
+          alias_maps = hash:/etc/aliases
+          alias_database = hash:/etc/aliases
+          myorigin = /etc/mailname
+          mydestination = {{ domain }}, localhost.{{ domain }}, localhost
+          mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 {{ goPhishIP }}
+          mailbox_command = procmail -a "\$EXTENSION"
+          mailbox_size_limit = 0
+          recipient_delimiter = +
+          inet_interfaces = all
+          inet_protocols = ipv4
+          milter_default_action = accept
+          milter_protocol = 6
+          smtpd_milters = inet:12301,inet:localhost:54321
+          non_smtpd_milters = inet:12301,inet:localhost:54321
+          virtual_alias_maps = hash:/etc/postfix/virtual
+          EOF
+      args:
+        executable: /bin/bash
+    
+    - name: Configure Postfix - modify /etc/postfix/master.cf
+      become: true
+      shell:
+        cmd: |
+          cat >> /etc/postfix/master.cf << EOF
+          submission inet n       -       -       -       -       smtpd
+            -o syslog_name=postfix/submission
+            -o smtpd_tls_wrappermode=no
+            -o smtpd_tls_security_level=encrypt
+            -o smtpd_sasl_auth_enable=yes
+            -o smtpd_recipient_restrictions=permit_mynetworks,permit_sasl_authenticated,reject
+            -o milter_macro_daemon_name=ORIGINATING
+            -o smtpd_sasl_type=dovecot
+            -o smtpd_sasl_path=private/auth
+          EOF
+      args:
+        executable: /bin/bash
+###
+    - name: Configure Postfix - create blank file for /etc/postfix/virtual
+      become: true
+      file:
+        path: "/etc/postfix/virtual"
+        state: touch
+#####
+    - name: Configure Postfix - Modify /etc/postfix/virtual -- setup catchall email address
+      become: true
+      shell:
+        cmd: |
+          cat >> /etc/postfix/virtual << EOF
+          @{{domain}} {{unpriv_user_name}}
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Configure Postfix - Postmap /etc/postfix/virtual
+      become: true
+      shell: postmap /etc/postfix/virtual
+####
+###
+    #Configure Opendkim
+    - name: Configure Opendkim - create /etc/opendkim/keys/domain/ for Opendkim
+      become: true
+      file:
+        path: "/etc/opendkim/keys/{{ domain }}"
+        state: directory
+
+    - name: Configure Opendkim - backup /etc/opendkim.conf to /etc/opendkim.conf.orig
+      become: true
+      copy:
+        src: /etc/opendkim.conf
+        dest: /etc/opendkim.conf.orig
+        remote_src: yes
+
+    - name: Configure Opendkim - modify /etc/opendkim.conf
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF > /etc/opendkim.conf
+          domain								*
+          AutoRestart						Yes
+          AutoRestartRate				10/1h
+          Umask									0002
+          Syslog								Yes
+          SyslogSuccess					Yes
+          LogWhy								Yes
+          Canonicalization			relaxed/simple
+          ExternalIgnoreList		/etc/opendkim/TrustedHosts
+          InternalHosts					/etc/opendkim/TrustedHosts
+          KeyFile								/etc/opendkim/keys/{{ domain }}/mail.private
+          Selector							mail
+          Mode									sv
+          PidFile								/var/run/opendkim/opendkim.pid
+          SignatureAlgorithm		rsa-sha256
+          UserID								opendkim:opendkim
+          Socket								inet:12301@localhost
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Configure Opendkim - create blank file for /etc/opendkim/TrustedHosts
+      become: true
+      file:
+        path: "/etc/opendkim/TrustedHosts"
+        state: touch
+
+    - name: Configure Opendkim - modify /etc/opendkim/TrustedHosts
+      become: true
+      shell:
+        cmd: |
+          cat > /etc/opendkim/TrustedHosts << EOF
+          127.0.0.1
+          localhost
+          {{  domain  }}
+          mail.{{  domain  }}
+          {{ goPhishIP }}
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Configure Opendkim - opendkim-genkey
+      become: true
+      shell: opendkim-genkey -s mail -d "{{ domain }}"
+      args:
+        chdir: "/etc/opendkim/keys/{{ domain }}"
+
+    - name: Configure Opendkim - modify /etc/default/opendkim
+      become: true
+      shell: echo 'SOCKET="inet:12301"' >> /etc/default/opendkim
+
+    - name: Configure Opendkim - change file ownership, group and permissions of /etc/opendkim to opendkim:opendkim
+      become: true
+      file:
+        path: /etc/opendkim
+        owner: opendkim
+        group: opendkim
+        recurse: yes
+
+    #Configure OpenDMARC
+    - name: Configure OpenDMARC - change file ownership, group and permissions of /var/run/opendmarc to opendmarc:opendmarc
+      become: true
+      file:
+        path: /var/run/opendmarc
+        owner: opendmarc
+        group: opendmarc
+        recurse: yes
+
+    - name: Configure OpenDMARC - modify /etc/opendmarc.conf
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF > /etc/opendmarc.conf
+          AuthservID {{ domain }}
+          PidFile /var/run/opendmarc/opendmarc.pid
+          RejectFailures false
+          Syslog true
+          TrustedAuthservIDs {{ domain }}
+          Socket  inet:54321@localhost
+          UMask 0002
+          UserID opendmarc:opendmarc
+          IgnoreHosts /etc/opendmarc/ignore.hosts
+          HistoryFile /var/run/opendmarc/opendmarc.dat
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Configure OpenDMARC - create /etc/opendmarc/
+      become: true
+      file:
+        path: "/etc/opendmarc/"
+        state: directory
+
+    - name: Configure OpenDMARC - modify /etc/opendmarc/ignore.hosts
+      become: true
+      shell: echo "localhost" > /etc/opendmarc/ignore.hosts
+    
+    - name: Configure Opendmarc - change file ownership, group and permissions of /etc/opendmarc to opendmarc:opendmarc
+      become: true
+      file:
+        path:  /etc/opendmarc
+        owner: opendmarc
+        group: opendmarc
+        recurse: yes
+
+    - name: Configure OpenDMARC - modify /etc/default/opendmarc
+      become: true
+      shell: echo 'SOCKET="inet:54321"' >> /etc/default/opendmarc
+
+    #Configure Dovecot
+    - name: Configure Dovecot - modify /etc/dovecot/dovecot.conf
+      become: true
+      shell:
+        cmd: |  
+          cat > /etc/dovecot/dovecot.conf << EOF        
+          disable_plaintext_auth = no
+          mail_privileged_group = mail
+          mail_location = mbox:~/mail:INBOX=/var/mail/%u
+          
+          userdb {
+            driver = passwd
+          }
+          
+          passdb {
+            args = %s
+            driver = pam
+          }
+          
+          protocols = " imap"
+          
+          protocol imap {
+            mail_plugins = " autocreate"
+          }
+          
+          plugin {
+            autocreate = Trash
+            autocreate2 = Sent
+            autosubscribe = Trash
+            autosubscribe2 = Sent
+          }
+          
+          service imap-login {
+            inet_listener imap {
+              port = 0
+            }
+            inet_listener imaps {
+              port = 993
+            }
+          }
+          
+          service auth {
+            unix_listener /var/spool/postfix/private/auth {
+              group = postfix
+              mode = 0660
+              user = postfix
+            }
+          }
+          
+          ssl=required
+          ssl_cert = </home/{{ unpriv_user_name }}/{{  domain  }}_fullchain.crt
+          ssl_key = </home/{{ unpriv_user_name }}/{{  domain  }}_privkey.pem
+          EOF
+      args:
+        executable: /bin/bash  
+
+    #Linux account/user that will recieve email
+    - name: Set Linux account/user that will recieve email
+      become: true
+      shell: echo "{{ unpriv_user_name }}:" root >> /etc/aliases
+
+    - name: restart postfix
+      become: true
+      service:
+        name: postfix
+        state: restarted
+
+    - name: restart opendkim
+      become: true
+      service:
+        name: opendkim
+        state: restarted
+
+    - name: restart opendmarc
+      become: true
+      service:
+        name: opendmarc
+        state: restarted
+
+    - name: restart dovecot 
+      become: true
+      service:
+        name: dovecot
+        state: restarted
+
+    - name: DNS Entries - Create dnsentries.txt
+      file:
+        path: "/home/{{ unpriv_user_name }}/dnsentries.txt"
+        state: touch
+
+    - name: DNS Entries - Obtain domain name for DNS entries
+      become: true
+      shell: ls /etc/opendkim/keys/ | head -1
+      register: phishDomain
+
+    - name: DNS Entries - Obtain DKIM record for DNS entries
+      become: true
+      shell: cut -d '"' -f 2 "/etc/opendkim/keys/{{ domain }}/mail.txt" | tr -d "[:space:]"
+      register: dkimrecord
+
+    - name: DNS Entries - Generate DNS entries
+      become: true
+      shell: 
+        cmd: |
+          cat <<-EOF > "/home/{{ unpriv_user_name }}/dnsentries.txt"
+          DNS Entries for {{ phishDomain.stdout }}:
+
+          ====================================================================
+          Namecheap - Enter under Advanced DNS
+
+          Record Type: A
+          Host: @
+          Value: <WEB REDIRECTOR IP>
+          TTL: 60 min
+
+          Record Type: A
+          Host: mail
+          Value: {{ mailServerIP }}
+          TTL: 60 min
+
+          Record Type: TXT
+          Host: @
+          Value: v=spf1 a mx ip4:{{ mailServerIP }} ~all
+          TTL: 60 min
+
+          Record Type: TXT
+          Host: mail._domainkey
+          Value: {{ dkimrecord.stdout }}
+          TTL: 60 min
+
+          Change Mail Settings to Custom MX and Add New Record
+          Record Type: MX
+          Host: @
+          Value: mail.{{ phishDomain.stdout }}
+          Priority: 10
+          TTL: 60 min
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: DNS Entries - Obtain contents of dnsentries.txt
+      become: true
+      shell: cat "/home/{{ unpriv_user_name }}/dnsentries.txt"
+      register: dnsentries
+
+    - name: DNS Entries - Print DNS entries to screen
+      debug:
+        msg: "{{ dnsentries.stdout_lines }}"

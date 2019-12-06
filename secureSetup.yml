@@ -1,0 +1,114 @@
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+
+# This script will configure a freshly installed server to a baselined "secured" state:
+  #Update and install packages
+  #Create unprivileged user account
+  #Upload SSH keys on your Ansible Server
+  #Configure firewall rules
+  #Disallow password authentication for SSH
+  #Disable root from SSH
+
+---
+- hosts: 
+  - mail
+  - core
+  - redirector
+
+  vars:
+    unpriv_password: "<PASSWORD HASH>"
+    
+    unprivileged_user_name: <USERNAME>
+    
+    public_keys:
+      - <PATH>/<SSH KEY>.pub
+
+    lab_IPs:
+      - <IP1>
+      - <IP2>
+      - <IP>
+      
+    required_packages:
+      - ufw
+      - unattended-upgrades
+
+    optional_packages:
+      - vim
+      - net-tools
+    
+  tasks:     
+    #Update and install packages
+    - name: Update APT package cache
+      apt: 
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade APT to the latest packages
+      apt: 
+        upgrade: safe
+      
+    - name: Install required packages
+      apt: 
+        state: present
+        pkg: "{{ required_packages}}"
+
+    #Not setup to do muliple users
+    #Create unprivileged user account
+    - name: Create unprivileged users
+      user:
+        name: "{{ unprivileged_user_name }}"
+        password: "{{ unpriv_password }}" 
+        shell: /bin/bash
+
+    #Create the SSH keys on your Ansible box for upload
+    - name: Upload SSH keys from Ansible box
+      authorized_key: 
+        user: "{{ unprivileged_user_name }}"
+        key: "{{ lookup('file', item )}}"
+      with_items: "{{public_keys}}"
+
+    - name: Add unprivileged users to sudoers
+      lineinfile: 
+        dest: /etc/sudoers
+        regexp: "{{ unprivileged_user_name }} ALL"
+        line: "{{ unprivileged_user_name }} ALL=(ALL) ALL"
+        state: present
+     
+    #Configure firewall rules
+    - name: Firewall - Allow SSH only from Labs IPs
+      become: true
+      ufw: 
+        rule: allow
+        port: 22
+        proto: tcp
+        src: "{{ item }}"
+      with_items: "{{ lab_IPs }}"
+         
+    - name: Firewall - Establish default policy to explicitly block all incomming traffic
+      ufw: 
+        state: enabled
+        direction: incoming
+        policy: deny
+
+    #Disallow password authentication for SSH
+    - name: Disallow password authentication for SSH
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+      notify: Restart ssh
+    
+    #Disable root from SSH
+    - name: Disallow root SSH access
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+        state: present
+      notify: Restart ssh
+
+  handlers:
+    - name: Restart ssh
+      service:
+        name: ssh
+        state: restarted

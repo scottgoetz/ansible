@@ -1,0 +1,7 @@
+#current rules may block cloud fronted providers AWS/Azure/etc?
+#Include /var/www/html/redirect.rules
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^(<www.sub.domain.com>|<sub.domain.com>)/?$ [NC]
+###The condition below will use regex to pull the UID from a URL similar to this >> https://sub.domain.com/test/UID/test
+RewriteCond %{REQUEST_URI} /.*/(.*)/.*
+RewriteRule ^.*$ https://<goPhishIp OR goPhishDomainName>/?eventid=%1 [P,L]

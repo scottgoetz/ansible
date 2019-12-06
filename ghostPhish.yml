@@ -1,0 +1,193 @@
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+
+#This script sets up a customized GoPhish server (GhostPhish) configured to use a SMTP relay that forwards email to MailGun for final delivery to target:
+  #Change hostname
+  #Disable IPv6
+  #Install GoPhish and GhostPhish
+  #Configure firewall rules
+  #Upload SSL certs from Ansible Server
+  #Print DNS entries 
+
+#This script is primarily derived from these two sources:
+  #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
+  #https://godlikesecurity.com/index.php/2017/12/14/building-resilient-phishing-campaigns/
+
+---
+- hosts: core
+
+  gather_facts: no
+
+  vars_prompt: 
+    - name: "githubuser" 
+      prompt: "Enter your github username" 
+      private: no
+      
+    - name: "githubpassword" 
+      prompt: "Enter your github password" 
+      private: yes 
+
+  vars:
+    unpriv_user_name: <username>
+
+    webRedirector_IPs:
+      - <IP1>
+      - <IP2>
+    
+    smtpRelay_IP: <IP>
+
+    lab_IPs:
+      - <IP1>
+      - <IP2>
+      - <IP3>
+     
+    fullchainPath: "<path on Ansible Server>/<fullchain.crt>"
+    privkeyPath: "<path on Ansible Server>/<privkey.pem>"
+    
+    domain: <domain>.<com>
+
+    required_packages:
+      - mailutils
+      - golang-go
+      - jq
+      - moreutils
+
+  tasks:    
+    #Ubuntu initialization
+    - name: Change hostname to "core"
+      become: true
+      hostname:
+        name: "core"
+
+    - name: Add new hostname to /etc/hosts
+      become: true
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: '127.0.0.1 localhost core'
+        state: present
+
+    - name: Diable IPv6
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF >> /etc/sysctl.conf
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+          net.ipv6.conf.lo.disable_ipv6 = 1
+          net.ipv6.conf.eth0.disable_ipv6 = 1
+          net.ipv6.conf.eth1.disable_ipv6 = 1
+          net.ipv6.conf.ppp0.disable_ipv6 = 1
+          net.ipv6.conf.tun0.disable_ipv6 = 1
+          EOF
+      args:
+        executable: /bin/bash
+
+    - name: Install required packages
+      become: true
+      apt: 
+        state: present
+        pkg: "{{ required_packages}}"
+
+    #https://stackoverflow.com/questions/37841914/how-do-i-pass-username-and-password-while-using-ansible-git-module
+    - name: GoPhish - Download GhostPhish from private repo
+      git: 
+        repo: "https://{{ githubuser | urlencode }}:{{ githubpassword | urlencode }}@github.com/scottgoetz/gophish_ghost.git"
+        dest: "/home/{{ unpriv_user_name }}/ghostPhish"
+        
+    - name: GoPhish - Ensure remote URL does not contain credentials
+      git_config:
+        name: remote.origin.url
+        value: https://github.com/scottgoetz/gophish_ghost.git
+        scope: local
+        repo: "/home/{{ unpriv_user_name }}/ghostPhish"
+
+    - name: GoPhish - Download GoPhish from source using Go
+      shell: go get github.com/gophish/gophish
+
+    - name: GoPhish - Create backup directory for GoPhish controllers
+      file:
+        path: "/home/{{ unpriv_user_name }}/controllers_bak"
+        state: directory
+
+    - name: GoPhish - Create backup directory for GoPhish models
+      file:
+        path: "/home/{{ unpriv_user_name }}/models_bak"
+        state: directory
+
+    - name: GoPhish - Backup original GoPhish controllers
+      shell: "cp /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/controllers/*.go /home/{{ unpriv_user_name }}/controllers_bak"
+
+    - name: GoPhish - Backup original GoPhish models
+      shell: "cp /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/models/*.go /home/{{ unpriv_user_name }}/models_bak"
+
+    - name: GoPhish - Overwrite original GoPhish controllers with GhostPhish
+      shell: "cp /home/{{ unpriv_user_name }}/ghostPhish/controllers/*.go /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/controllers/"
+
+    - name: GoPhish - Overwrite original GoPhish models with GhostPhish
+      shell: "cp /home/{{ unpriv_user_name }}/ghostPhish/models/*.go /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/models/"
+
+    - name: GoPhish - Backup config.json
+      shell: "cp /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/config.json /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/config.json_bak"
+
+    - name: GoPhish - Modify config.json -- change admin server ip to all listen on all interfaces 0.0.0.0
+      shell: jq '.admin_server.listen_url = "0.0.0.0:3333"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- add SSL cert
+      shell: jq '.phish_server.cert_path = "/home/{{ unpriv_user_name }}/{{ domain }}_fullchain.crt"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- change phishing server to 443
+      shell: jq '.phish_server.listen_url = "0.0.0.0:443"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- enable TLS
+      shell: jq '.phish_server.use_tls = true' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- add SSL private key
+      shell: jq '.phish_server.key_path = "/home/{{ unpriv_user_name }}/{{ domain }}_privkey.pem"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Overwrite original GoPhish models with GhostPhish
+      shell: go build
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+        
+    #Setup Firewall rules
+    - name: Firewall - Allow to HTTP from lab and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 80
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ lab_IPs }}"
+
+    - name: Firewall - Allow access to HTTPS from lab and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 443
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ lab_IPs }}"
+
+    - name: Firewall - Allow access to GoPhish console from lab on port 3333
+      become: true
+      ufw:
+        rule: allow
+        port: 3333
+        src: "{{ item }}"
+      with_items: 
+        - "{{ lab_IPs }}"
+
+    - debug: 
+        msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page.
