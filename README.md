@@ -39,4 +39,4 @@ How to setup GoPhish infrastructure:
  1. Run secureSetup.yml on Core Server (server that GoPhish is installed on), Web Redirector, and Mail Server
  2. Run redirectorSetup.yml on Web Redirector
  3. Run postfix_*.yml on Mail Server
- 4. Run GoPhish.yml/GhostPhish.yml
+ 4. Run GoPhish.yml/GhostPhish.yml on Core
