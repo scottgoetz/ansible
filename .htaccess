@@ -1,5 +1,5 @@
 #current rules may block cloud fronted providers AWS/Azure/etc?
-###Replace values between <>
+###Replace values between <>, then remove brackets
 #Include /var/www/html/redirect.rules
 RewriteEngine on
 ###Condition below will only redirect if the correct subdomain is hit
