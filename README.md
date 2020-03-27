@@ -21,6 +21,9 @@ These instructions are to be implemented on your Ansible Server:
 * Generate ssh keypairs for Clients, annotate paths for .yml files:
   * ssh-keygen
 * Modify variables in the "vars" section of each Ansible script. Data that needs to be modified is contained between angle brackets (e.g. <variable_name>) need to be modified.
+* Make sure to change Hostname on VPS
+
+Execution:
 * Run initial secureSetup.yml Ansible script to configure Clients in a secure state:
   * sudo ansible-playbook --ask-pass -u root secureSetup.yml
 * Run secondary Ansible scripts to configure Client for various purposes:
@@ -36,3 +39,4 @@ How to setup GoPhish infrastructure:
  1. Run secureSetup.yml on Core Server (server that GoPhish is installed on), Web Redirector, and Mail Server
  2. Run redirectorSetup.yml on Web Redirector
  3. Run postfix_*.yml on Mail Server
+ 4. Run GoPhish.yml/GhostPhish.yml
