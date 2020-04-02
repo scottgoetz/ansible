@@ -23,7 +23,9 @@ These instructions are to be implemented on your Ansible Server:
   * ssh-keygen
 * Modify variables in the "vars" section of each Ansible script. Data that needs to be modified is contained between angle brackets (e.g. <variable_name>) need to be modified.
 * Make sure to change Hostname on VPS
-* Make sure to setup DNS records before running the redirectorSetup.yml script, letsencrypt needs the records to be established in order to make SSL certs. postfix.yml has an example of how the records should look.
+* Make sure to setup DNS records before running the redirectorSetup.yml script, letsencrypt needs the records to be established in order to make SSL certs. 
+  * postfix.yml has an example of how the records should look.
+  * Ensure that the hostnames resolve in DNS before moving forward.
 
 Execution:
 * Run initial secureSetup.yml Ansible script to configure Clients in a secure state:
