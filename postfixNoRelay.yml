@@ -484,9 +484,19 @@
           Value: <WEB REDIRECTOR IP>
           TTL: 60 min
 
+          Record Type: CNAME
+          Host: www
+          Value: {{ phishDomain.stdout }}
+          TTL: 60 min
+
           Record Type: A
           Host: mail
-          Value: {{ mailServerIP }}
+          Value: mail.{{ phishDomain.stdout }}
+          TTL: 60 min
+          
+          Record Type: CNAME
+          Host: www.mail
+          Value: {{ phishDomain.stdout }}
           TTL: 60 min
 
           Record Type: TXT
