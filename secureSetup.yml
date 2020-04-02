@@ -22,7 +22,7 @@
     public_keys:
       - <PATH>/<SSH KEY>.pub
 
-    lab_IPs:
+    firewall_IPs:
       - <IP1>
       - <IP2>
       - <IP>
