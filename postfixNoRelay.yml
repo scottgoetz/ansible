@@ -172,7 +172,6 @@
           /^Received:.*/              IGNORE
           /^X-Originating-IP:/    IGNORE
           /^X-Mailer:/            IGNORE
-          /^Mime-Version:/        IGNORE
           EOF
       args:
         executable: /bin/bash
