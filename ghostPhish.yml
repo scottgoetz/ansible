@@ -47,6 +47,7 @@
     required_packages:
       - mailutils
       - golang-go
+      - golang-1.13-doc
       - jq
       - moreutils
 
@@ -80,7 +81,16 @@
           EOF
       args:
         executable: /bin/bash
-
+        
+    - name: custom apt repo for Golang 1.13
+      become: true
+      apt_repository:
+        repo: ppa:hnakamur/golang-1.13
+        state: present
+        
+    - name: Update apt-get repo and cache
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+      
     - name: Install required packages
       become: true
       apt: 
