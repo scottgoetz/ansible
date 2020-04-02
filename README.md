@@ -15,9 +15,9 @@ These instructions are to be implemented on your Ansible Server:
   * or mkpasswd -m sha-512
 * Disable host key checking:
   * sudo vi /etc/ansible/ansible.cfg
-* Add Client hostnames and IPs to Ansible "hosts" file:
+* Add Client names and IPs to Ansible "hosts" file:
   * sudo vi /etc/ansible/hosts 
-  * Refer to ansible scripts for default names: i.e. mail, core, redirector, drone
+  * Must match names under the "hosts" area in ansible scripts: i.e. mail, core, redirector, drone
 * sudo apt-get install sshpass
 * Generate ssh keypairs for Clients, annotate paths for .yml files:
   * ssh-keygen
