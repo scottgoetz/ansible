@@ -7,4 +7,4 @@ RewriteCond %{HTTP_HOST} ^(<www.sub.domain.com>|<sub.domain.com>)/?$ [NC]
 ###Condition below will use regex to pull the UID from a URL similar to this >> https://sub.domain.com/test/UID/test
 RewriteCond %{REQUEST_URI} /.*/(.*)/.*
 ###If the conditions above are met then redirect to the GoPhish server
-RewriteRule ^.*$ https://<goPhishIp OR goPhishDomainName>/?eventid=%1 [P,L]
+RewriteRule ^.*$ https://<goPhishIp OR goPhishDomainName>/?rid=%1 [P,L]
