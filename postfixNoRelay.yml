@@ -35,8 +35,8 @@
 
     mailServerIP: <IP>
 
-    fullchainPath: "<path on Ansible Server>/<fullchain.pem>"
-    privkeyPath: "<path on Ansible Server>/<privkey.pem>"
+    fullchainPath: "<path on Ansible Server>/fullchain.pem>"
+    privkeyPath: "<path on Ansible Server>/privkey.pem>"
 
     required_packages:
       - dovecot-imapd
