@@ -164,6 +164,19 @@
         dest: "{{ domain }}_privkey.pem"
 
     #Configure Postfix
+    - name: Remove Recieved mail headers with Client data
+      become: true
+      shell:
+        cmd: |
+          cat > /etc/postfix/header_checks << EOF
+          /^Received:.*/              IGNORE
+          /^X-Originating-IP:/    IGNORE
+          /^X-Mailer:/            IGNORE
+          /^Mime-Version:/        IGNORE
+          EOF
+      args:
+        executable: /bin/bash
+  
     ###The value of $myhostname will appear in the email headers
     - name: Configure Postfix - modify /etc/postfix/main.cf
       become: true
@@ -198,6 +211,8 @@
           smtpd_milters = inet:12301,inet:localhost:54321
           non_smtpd_milters = inet:12301,inet:localhost:54321
           virtual_alias_maps = hash:/etc/postfix/virtual
+          mime_header_checks = regexp:/etc/postfix/header_checks
+          header_checks = regexp:/etc/postfix/header_checks
           EOF
       args:
         executable: /bin/bash
@@ -239,6 +254,10 @@
     - name: Configure Postfix - Postmap /etc/postfix/virtual
       become: true
       shell: postmap /etc/postfix/virtual
+      
+    - name: Configure Postfix - Postmap /etc/postfix/header_checks
+      become: true
+      shell: postmap /etc/postfix/header_checks
 ####
 ###
     #Configure Opendkim
