@@ -31,18 +31,16 @@
     webRedirector_IPs:
       - <IP1>
       - <IP2>
-    
-    smtpRelay_IP: <IP>
 
     allowedIPs:
       - <IP1>
       - <IP2>
       - <IP3>
      
-    fullchainPath: "<path on Ansible Server>/<fullchain.pem>"
-    privkeyPath: "<path on Ansible Server>/<privkey.pem>"
+    fullchainPath: "<path on Ansible Server/fullchain.pem>"
+    privkeyPath: "<path on Ansible Server/privkey.pem>"
     
-    domain: <domain>.<com>
+    domain: <domain.com>
 
     required_packages:
       - mailutils
@@ -82,11 +80,10 @@
       args:
         executable: /bin/bash
         
-    - name: custom apt repo for Golang 1.13
+    - name: Set Custom apt repo for Golang 1.13
       become: true
       apt_repository:
         repo: ppa:hnakamur/golang-1.13
-        state: present
         
     - name: Update apt-get repo and cache
       apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
@@ -169,7 +166,7 @@
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
         
     #Setup Firewall rules
-    - name: Firewall - Allow to HTTP from lab and redirectors
+    - name: Firewall - Allow to HTTP from allowed IPs and redirectors
       become: true
       ufw:
         rule: allow
@@ -177,9 +174,9 @@
         src: "{{ item }}"
       with_items: 
         - "{{ webRedirector_IPs }}"
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
 
-    - name: Firewall - Allow access to HTTPS from lab and redirectors
+    - name: Firewall - Allow access to HTTPS from allowed IPs and redirectors
       become: true
       ufw:
         rule: allow
@@ -187,16 +184,16 @@
         src: "{{ item }}"
       with_items: 
         - "{{ webRedirector_IPs }}"
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
 
-    - name: Firewall - Allow access to GoPhish console from lab on port 3333
+    - name: Firewall - Allow access to GoPhish console from allowed IPs on port 3333
       become: true
       ufw:
         rule: allow
         port: 3333
         src: "{{ item }}"
       with_items: 
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
 
     - debug: 
         msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page.
