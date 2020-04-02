@@ -24,7 +24,7 @@
 
     domain: <domain>
 
-    fullchainPath: "<path on Ansible Server>/<fullchain.crt>"
+    fullchainPath: "<path on Ansible Server>/<fullchain.pem>"
     privkeyPath: "<path on Ansible Server>/<privkey.pem>"
 
     required_packages:
@@ -99,7 +99,7 @@
     - name: Upload SSL fullchain certificate file from Ansible Server
       copy:
         src: "{{ fullchainPath }}"
-        dest: "{{ domain }}_fullchain.crt"
+        dest: "{{ domain }}_fullchain.pem"
         
     - name: Upload SSL privkey PEM file from Ansible Server
       copy:
@@ -108,7 +108,7 @@
         
     - name: Build PKCS12 .p12 cert
       become: true
-      shell: "openssl pkcs12 -export -in {{ domain }}_fullchain.crt -inkey {{ domain }}_privkey.pem -out {{ domain }}.p12 -name {{ domain }} -passout pass:{{ JavaKeyStorePassword }}"
+      shell: "openssl pkcs12 -export -in {{ domain }}_fullchain.pem -inkey {{ domain }}_privkey.pem -out {{ domain }}.p12 -name {{ domain }} -passout pass:{{ JavaKeyStorePassword }}"
 
     - name: CobaltStrike - Build Java keystore via keytool to enable SSL comms
       become: true
