@@ -142,18 +142,21 @@
       fetch:
         src: "/etc/letsencrypt/live/{{ domain }}/privkey.pem"
         dest: "privkey.pem"
+        flat: yes
         
     - name: Download SSL fullchain PEM files to Ansible Server
       become: true
       fetch:
         src: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
-        dest: "fullchain.crt"
+        dest: "fullchain.pem"
+        flat: yes
 
     - name: Download SSL fullchain .p12 for CobaltStrike to aAnsible Server
       become: true
       fetch:
         src: "{{ domain }}.p12"
-        dest: "{{ domain }}.p12"    
+        dest: "{{ domain }}.p12"
+        flat: yes
 
     #Apache mod rewrite 
     - name: a2dismod - disable mod_deflate
