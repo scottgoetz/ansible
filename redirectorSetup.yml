@@ -25,6 +25,7 @@
     domain: <domain>.<com>
 
     ###NOTE: Only include www.* if you have a DNS A record for www for the domain and subdomain
+    ###Note: Create a CNAME Record for www.host.com
     ###NOTE: Perform this task after you set up DNS, make sure to provide DNS plenty of time to propegate. LetsEncrypt needs to be able to resolve the hostnames and reach out to them.
     letsencryptCommand: '/home/{{ unpriv_user_name }}/letsencrypt/letsencrypt-auto certonly --standalone -d <domain.com> -d <www.domain.com> -d <subDomain1.domain.com> -d <www.subDomain1.domain.com> -n --register-unsafely-without-email --agree-tos'
 
