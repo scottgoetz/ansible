@@ -31,7 +31,7 @@ Execution:
 * Run initial secureSetup.yml Ansible script to configure Clients in a secure state:
   * sudo ansible-playbook --ask-pass -u root secureSetup.yml
 * Run secondary Ansible scripts to configure Client for various purposes:
-  * sudo ansible-playbook -u <unprivileged_user_name> <script_name>.yml --key-file /home/<ansibleServer_username>/.ssh/id_rsa --ask-become-pass
+  * sudo ansible-playbook -u <unprivileged_user_name> <script_name>.yml --key-file /home/<ansibleServer_username>/.ssh/<sshkey>_rsa --ask-become-pass
   
 SSH with public keys:
   * ssh USER@IP -i ~/.ssh/id_rsa
