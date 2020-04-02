@@ -20,12 +20,12 @@
     unprivileged_user_name: <USERNAME>
     
     public_keys:
-      - <PATH>/<SSH KEY>.pub
+      - <PATH/SSH KEY.pub>
 
     allowedIPs:
       - <IP1>
       - <IP2>
-      - <IP>
+      - <IP3>
       
     required_packages:
       - ufw
@@ -74,14 +74,14 @@
         state: present
      
     #Configure firewall rules
-    - name: Firewall - Allow SSH only from Labs IPs
+    - name: Firewall - Allow SSH only from allowed IPs
       become: true
       ufw: 
         rule: allow
         port: 22
         proto: tcp
         src: "{{ item }}"
-      with_items: "{{ lab_IPs }}"
+      with_items: "{{ allowedIPs }}"
          
     - name: Firewall - Establish default policy to explicitly block all incomming traffic
       ufw: 
