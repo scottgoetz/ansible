@@ -22,7 +22,7 @@
   vars:
     unpriv_user_name: <user name>
     
-    domain: <domain>.<com>
+    domain: <domain.com>
 
     ###NOTE: Only include www.* if you have a DNS A record for www for the domain and subdomain
     ###Note: Create a CNAME Record for www.host.com
