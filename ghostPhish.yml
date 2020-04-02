@@ -34,7 +34,7 @@
     
     smtpRelay_IP: <IP>
 
-    lab_IPs:
+    allowedIPs:
       - <IP1>
       - <IP2>
       - <IP3>
