@@ -23,7 +23,7 @@
       - <IP1>
       - <IP2>
 
-    lab_IPs:
+    allowedIPs:
       - <IP1>
       - <IP2>
       - <IP3>
