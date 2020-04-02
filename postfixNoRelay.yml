@@ -35,7 +35,7 @@
 
     mailServerIP: <IP>
 
-    fullchainPath: "<path on Ansible Server>/<fullchain.crt>"
+    fullchainPath: "<path on Ansible Server>/<fullchain.pem>"
     privkeyPath: "<path on Ansible Server>/<privkey.pem>"
 
     required_packages:
@@ -156,7 +156,7 @@
     - name: Upload SSL fullchain certificate file from Ansible Server
       copy:
         src: "{{ fullchainPath }}"
-        dest: "{{ domain }}_fullchain.crt"
+        dest: "{{ domain }}_fullchain.pem"
         
     - name: Upload SSL privkey PEM file from Ansible Server
       copy:
@@ -175,7 +175,7 @@
           append_dot_mydomain = no
           readme_directory = no
           smtp_use_tls=yes
-          smtpd_tls_cert_file=/home/{{ unpriv_user_name }}/{{ domain }}_fullchain.crt
+          smtpd_tls_cert_file=/home/{{ unpriv_user_name }}/{{ domain }}_fullchain.pem
           smtpd_tls_key_file=/home/{{ unpriv_user_name }}/{{ domain }}_privkey.pem
           smtpd_tls_security_level = may
           smtp_tls_security_level = encrypt
@@ -419,7 +419,7 @@
           }
           
           ssl=required
-          ssl_cert = </home/{{ unpriv_user_name }}/{{  domain  }}_fullchain.crt
+          ssl_cert = </home/{{ unpriv_user_name }}/{{  domain  }}_fullchain.pem
           ssl_key = </home/{{ unpriv_user_name }}/{{  domain  }}_privkey.pem
           EOF
       args:
