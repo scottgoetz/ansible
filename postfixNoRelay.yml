@@ -503,7 +503,12 @@
           Host: @
           Value: v=spf1 a mx ip4:{{ mailServerIP }} ~all
           TTL: 60 min
-
+          
+          Record Type: TXT
+          Host: ._dmarc
+          Value: v=DMARC1; p=reject
+          TTL: 60 min
+          
           Record Type: TXT
           Host: mail._domainkey
           Value: {{ dkimrecord.stdout }}
