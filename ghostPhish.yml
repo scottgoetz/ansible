@@ -88,17 +88,17 @@
         pkg: "{{ required_packages}}"
 
     #https://stackoverflow.com/questions/37841914/how-do-i-pass-username-and-password-while-using-ansible-git-module
+    - name: GoPhish - Download GhostPhish from private repo
+      git: 
+        repo: "https://{{ githubuser | urlencode }}:{{ githubpassword | urlencode }}@github.com/scottgoetz/gophish_ghost.git"
+        dest: "/home/{{ unpriv_user_name }}/ghostPhish"
+
     - name: GoPhish - Ensure remote URL does not contain credentials
       git_config:
         name: remote.origin.url
         value: https://github.com/scottgoetz/gophish_ghost.git
         scope: local
         repo: "/home/{{ unpriv_user_name }}/ghostPhish"
-
-    - name: GoPhish - Download GhostPhish from private repo
-      git: 
-        repo: "https://{{ githubuser | urlencode }}:{{ githubpassword | urlencode }}@github.com/scottgoetz/gophish_ghost.git"
-        dest: "/home/{{ unpriv_user_name }}/ghostPhish"
         
     - name: GoPhish - Download GoPhish from source using Go
       shell: go get github.com/gophish/gophish
