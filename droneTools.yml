@@ -1,7 +1,9 @@
 ---
 - hosts: drone
 
-#sudo ansible-playbook -u <username> droneTools.yml --ask-pass --ask-become-pass
+##TO RUN:
+####sudo ansible-playbook -u <username> droneTools.yml --ask-pass --ask-become-pass
+##Make sure to download the cobaltstrike and nessus installation files. This script will upload them to the drone from your computer
 
   vars:
     drone_user_name: <username>
