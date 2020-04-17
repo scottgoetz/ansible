@@ -28,6 +28,7 @@
     nessusPassword: <PASSWORD>
 
     #don't forget trailing slash!!
+    #This path is on the drone
     #userHomePath: </home/username/>
     userHomePath: </root/>
 
@@ -123,7 +124,7 @@
     - name: CobaltStrike - Upload Cobalt Strike license key to ~/root
       copy:
         src: "{{ cobaltstrikeLicense }}"
-        dest: /root/.cobaltstrike.license
+        dest: "{{ userHomePath }}.cobaltstrike.license"
       become: true
 
     - name: CobaltStrike - Update Cobalt Strike
