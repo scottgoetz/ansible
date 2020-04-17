@@ -1,6 +1,8 @@
 ---
 - hosts: drone
 
+#sudo ansible-playbook -u <username> droneTools.yml --ask-pass --ask-become-pass
+
   vars:
     allowedIPs:
       - <IP1>
