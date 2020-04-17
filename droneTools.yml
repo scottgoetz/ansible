@@ -4,11 +4,15 @@
 #sudo ansible-playbook -u <username> droneTools.yml --ask-pass --ask-become-pass
 
   vars:
+    drone_user_name: <username>
+    
     allowedIPs:
       - <IP1>
       - <IP2>
       - <IP3>
-
+      
+    newCobaltPort: <port>
+    
     #If your Client is running on Windows/Mac, download Windows/Mac and Linux installation
     cobaltstrikeInstallation: <cobaltstrike-dist.tgz>
 
@@ -31,8 +35,7 @@
 
     #don't forget trailing slash!!
     #This path is on the drone
-    #userHomePath: </home/username/>
-    userHomePath: </root/>
+    userHomePath: </home/username/>
 
     required_packages:
       - libssl-dev
@@ -40,9 +43,16 @@
       - python-dev
       - build-essential
       - python-pip
+      - pipenv
       - ufw
 
   tasks:
+    - name: Add old Kali source
+      become: true
+      apt_repository:
+        repo: deb http://old.kali.org/kali moto main non-free contribssss
+        state: present
+
     - name: Update APT package cache
       become: true
       apt: 
@@ -60,6 +70,10 @@
         state: present
         pkg: "{{ required_packages}}"
 
+    - name: update pip
+      become: yes
+      shell: sudo pip install --upgrade pip -i https://pypi.python.org/simple
+
     #CrackMapExec
     - name: CrackMapExec - Download CrackMapExec (Bleeding) from source from GitHub
       git: 
@@ -67,19 +81,11 @@
         dest: "{{ userHomePath }}CrackMapExec"
         recursive: yes
 
-    - name: CrackMapExec - Install pipenv
-      become: true
-      shell: pip install --user pipenv
-      args:
-        chdir: "{{ userHomePath }}CrackMapExec"
-
     - name: CrackMapExec - Install pipenv and use it to install CrackMapExec
-      shell: |
-         pipenv install
-
-         "{{ userHomePath }}.local/bin/pipenv run python setup.py install"
-      args:
-        chdir: "{{ userHomePath }}CrackMapExec"
+      become: yes
+      become_method: sudo
+      become_flags: "-i"
+      shell: "pipenv run python {{ userHomePath }}CrackMapExec/setup.py install"
 
     #Impacket
     - name: Impacket - Download Impacket from GitHub
@@ -88,9 +94,7 @@
         dest: "{{ userHomePath }}impacket"
 
     - name: Impacket - Run setup file with pip to install Impacket
-      shell: pip install .
-      args:
-        chdir: "{{ userHomePath }}impacket"
+      shell: "pip install {{ userHomePath }}impacket/"
 
     #Responder
     - name: Responder - Download Responder from GitHub
@@ -108,17 +112,17 @@
       become: true
       shell: /bin/bash setup.sh
       args:
-        chdir: "{{ userHomePath }}EyeWitness/setup"
+        chdir: "{{ userHomePath }}EyeWitness/Python/setup"
 
     #Install Cobalt Strike
     - name: CobaltStrike - Upload Cobalt Strike installation package from ansible host
       copy:
         src: "{{ cobaltstrikeInstallation }}"
-        dest: "{{ userHomePath }}cobaltstrike-trial.tgz"
+        dest: "{{ userHomePath }}cobaltstrike-dist.tgz"
 
     - name: CobaltStrike - Unzip Cobalt Strike installation package to /opt
       unarchive:
-        src: "{{ userHomePath }}cobaltstrike-trial.tgz"
+        src: "{{ userHomePath }}cobaltstrike-dist.tgz"
         dest: "{{ userHomePath }}"
         remote_src: yes
       become: yes
@@ -126,7 +130,7 @@
     - name: CobaltStrike - Upload Cobalt Strike license key to ~/root
       copy:
         src: "{{ cobaltstrikeLicense }}"
-        dest: "{{ userHomePath }}.cobaltstrike.license"
+        dest: "/root/.cobaltstrike.license"
       become: true
 
     - name: CobaltStrike - Update Cobalt Strike
@@ -140,7 +144,7 @@
       replace:
         dest: "{{ userHomePath }}cobaltstrike/teamserver"
         regexp: 50050
-        replace: 42424
+        replace: "{{newCobaltPort}}"
 
     - name: CobaltStrike - Firewall rule to restrict access to CobaltStrike management port on 42424
       become: true
@@ -151,33 +155,6 @@
         src: "{{ item }}"
       with_items:
         - "{{ allowedIPs }}"
-
-#    - name: CobaltStrike - Upload SSL fullchain PEM file from ansible host
-#      copy:
-#        src: "{{ domain }}_fullchain.pem"
-#        dest: "{{ domain }}_fullchain.pem"
-        
-#    - name: CobaltStrike - Upload SSL privkey PEM file from ansible host
-#      copy:
-#        src: "{{ domain }}_privkey.pem"
-#        dest: "{{ domain }}_privkey.pem"
-        
-#    - name: CobaltStrike - Build Java keystore via keytool to enable SSL comms
-#      become: true
-#      shell: "keytool -importkeystore -deststorepass {{ password }} -destkeypass {{ password }} -destkeystore {{ domain }}.store -srckeystore {{ domain }}.p12 -srcstoretype PKCS12 -srcstorepass {{ password }} -alias {{ domain }}"      
-
-#    - name: Download Cobalt Srike Java client to ansible host
-#      become: true
-#      fetch:
-#        src: "{{ userHomePath }}cobaltstrike/cobaltstrike.jar"
-#        dest: cobaltstrike.jar
-  
-#      - name: Download Cobalt Srike Java client to ansible host
-#      become: true
-#      fetch:
-#        src: "{{ userHomePath }}cobaltstrike/cobaltstrike"
-#        dest: cobaltstrike
-
 
     #Metasploit
     - name: Metasploit - Download Metasploit installer
@@ -196,11 +173,7 @@
 
     - name: Metasploit - Initialize Metasploit database
       become: true
-      expect:
-        command: msfdb init
-        responses:
-          '\]:': "{{ msfDatabaseUser }}"
-          '\):*': "{{ msfDatabasePassword }}"
+      shell: "msfdb init --user {{ msfDatabaseUser }} --pass {{ msfDatabasePassword }}"
     
     #Proxychains at /usr/bin/proxychains4
     - name: Proxychains - Download proxychains-NG from GitHub
