@@ -8,7 +8,7 @@
       - <IP3>
 
     #If your Client is running on Windows/Mac, download Windows/Mac and Linux installation
-    cobaltstrikeInstallation: <cobaltstrike-trial.tgz>
+    cobaltstrikeInstallation: <cobaltstrike-dist.tgz>
 
     #Flat text file with key
     cobaltstrikeLicense: <cobalt_license.txt>
