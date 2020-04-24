@@ -1,0 +1,161 @@
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+
+#This script sets up a modified GoPhish server
+  #Change hostname
+  #Disable IPv6
+  #Install GoPhish
+  #Configure firewall rules
+  #Upload SSL certs from Ansible Server
+
+#This script is primarily derived from these two sources:
+  #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
+  #https://godlikesecurity.com/index.php/2017/12/14/building-resilient-phishing-campaigns/
+
+---
+- hosts: core
+
+  gather_facts: no
+
+  vars_prompt: 
+    - name: "githubuser" 
+      prompt: "Enter your github username" 
+      private: no
+      
+    - name: "githubpassword" 
+      prompt: "Enter your github password" 
+      private: yes 
+
+  vars:
+    unpriv_user_name: <username>
+
+    webRedirector_IPs:
+      - <IP1>
+      - <IP2>
+
+    allowedIPs:
+      - <IP1>
+      - <IP2>
+      - <IP3>
+     
+    fullchainPath: "<path on Ansible Server/fullchain.pem>"
+    privkeyPath: "<path on Ansible Server/privkey.pem>"
+    
+    domain: <domain.com>
+
+    required_packages:
+      - mailutils
+      - golang-go
+      - golang-1.13-doc
+      - jq
+      - moreutils
+
+  tasks:    
+    #Ubuntu initialization
+    - name: Change hostname to "core"
+      become: true
+      hostname:
+        name: "core"
+
+    - name: Add new hostname to /etc/hosts
+      become: true
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: '127.0.0.1 localhost core'
+        state: present
+
+    - name: Diable IPv6
+      become: true
+      shell:
+        cmd: |
+          cat <<-EOF >> /etc/sysctl.conf
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+          net.ipv6.conf.lo.disable_ipv6 = 1
+          net.ipv6.conf.eth0.disable_ipv6 = 1
+          net.ipv6.conf.eth1.disable_ipv6 = 1
+          net.ipv6.conf.ppp0.disable_ipv6 = 1
+          net.ipv6.conf.tun0.disable_ipv6 = 1
+          EOF
+      args:
+        executable: /bin/bash
+        
+    - name: Set Custom apt repo for Golang 1.13
+      become: true
+      apt_repository:
+        repo: ppa:hnakamur/golang-1.13
+        
+    - name: Update apt-get repo and cache
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+      
+    - name: Install required packages
+      become: true
+      apt: 
+        state: present
+        pkg: "{{ required_packages}}"
+        
+    - name: GoPhish - Download GoPhish from source using Go
+      shell: go get github.com/gophish/gophish
+
+    - name: GoPhish - Modify config.json -- change admin server ip to all listen on all interfaces 0.0.0.0
+      shell: jq '.admin_server.listen_url = "0.0.0.0:3333"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- add SSL cert
+      shell: jq '.phish_server.cert_path = "/home/{{ unpriv_user_name }}/{{ domain }}_fullchain.pem"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- change phishing server to 443
+      shell: jq '.phish_server.listen_url = "0.0.0.0:443"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- enable TLS
+      shell: jq '.phish_server.use_tls = true' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Modify config.json -- add SSL private key
+      shell: jq '.phish_server.key_path = "/home/{{ unpriv_user_name }}/{{ domain }}_privkey.pem"' config.json | sponge config.json
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+
+    - name: GoPhish - Build modified goPhish
+      shell: go build
+      args:
+        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+        
+    #Setup Firewall rules
+    - name: Firewall - Allow to HTTP from allowed IPs and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 80
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ allowedIPs }}"
+
+    - name: Firewall - Allow access to HTTPS from allowed IPs and redirectors
+      become: true
+      ufw:
+        rule: allow
+        port: 443
+        src: "{{ item }}"
+      with_items: 
+        - "{{ webRedirector_IPs }}"
+        - "{{ allowedIPs }}"
+
+    - name: Firewall - Allow access to GoPhish console from allowed IPs on port 3333
+      become: true
+      ufw:
+        rule: allow
+        port: 3333
+        src: "{{ item }}"
+      with_items: 
+        - "{{ allowedIPs }}"
+
+    - debug: 
+        msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page.
