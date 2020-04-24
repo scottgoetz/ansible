@@ -10,6 +10,8 @@
 #This script is primarily derived from these two sources:
   #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
   #https://godlikesecurity.com/index.php/2017/12/14/building-resilient-phishing-campaigns/
+  
+#**TODO: CHANGE DEFAULT CREDS**
 
 ---
 - hosts: core
