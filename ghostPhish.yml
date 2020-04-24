@@ -162,7 +162,7 @@
       args:
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
 
-    - name: GoPhish - Overwrite original GoPhish models with GhostPhish
+    - name: GoPhish - Build modified goPhish
       shell: go build
       args:
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
