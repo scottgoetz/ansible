@@ -42,6 +42,6 @@ For when you rebuild a Client and need to delete old keys:
 
 How to setup GoPhish infrastructure:
  1. Run secureSetup.yml on Core Server (server that GoPhish is installed on), Web Redirector, and Mail Server
- 2. Run redirectorSetup.yml on Web Redirector
- 3. Run postfix_*.yml on Mail Server
+ 2. Run webRedirector.yml on Web Redirector
+ 3. Run mailServer.yml on Mail Server
  4. Run GoPhish.yml/GhostPhish.yml on Core
