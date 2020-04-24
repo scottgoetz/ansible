@@ -1,6 +1,6 @@
 #!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
 
-#This script sets up a customized GoPhish server (GhostPhish) configured to use a SMTP relay that forwards email to MailGun for final delivery to target:
+#This script sets up a customized GoPhish server with removed IOCs (ghostPhish)
   #Change hostname
   #Disable IPv6
   #Install GoPhish and GhostPhish
@@ -10,8 +10,6 @@
 #This script is primarily derived from these two sources:
   #https://github.com/n0pe-sled/Postfix-Server-Setup/blob/master/ServerSetup.sh
   #https://godlikesecurity.com/index.php/2017/12/14/building-resilient-phishing-campaigns/
-  
-#**TODO: CHANGE DEFAULT CREDS**
 
 ---
 - hosts: core
