@@ -157,6 +157,20 @@
         src: "{{ item }}"
       with_items:
         - "{{ allowedIPs }}"
+        
+    - name: CobaltStrike - Download Cobalt Srike Java client to ansible host
+      become: true
+      fetch:
+        src: "/opt/cobaltstrike/cobaltstrike.jar"
+        dest: cobaltstrike.jar
+        flat: yes
+  
+    - name: CobaltStrike - Download Cobalt Srike Java client auth file to ansible host
+      become: true
+      fetch:
+        src: "/opt/cobaltstrike/cobaltstrike.auth"
+        dest: cobaltstrike.auth
+        flat: yes
 
     #Metasploit
     - name: Metasploit - Download Metasploit installer
