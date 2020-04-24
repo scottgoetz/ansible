@@ -4,7 +4,11 @@
 ##TO RUN:
 ####sudo ansible-playbook -u <username> droneTools.yml --ask-pass --ask-become-pass
 ##Make sure to download the cobaltstrike and nessus installation files. This script will upload them to the drone from your computer
-
+  vars_prompt:
+    - name: "msfDatabasePassword" 
+      prompt: "Enter password for metasploit database" 
+      private: yes 
+      
   vars:
     drone_user_name: <username>
     
@@ -22,8 +26,6 @@
     cobaltstrikeLicense: <cobalt_license.txt>
 
     msfDatabaseUser: <USERNAME>
-
-    msfDatabasePassword: <PASSWORD>
 
     #Download Nessus install file from https://www.tenable.com/downloads/nessus and save to Ansible Server home dir
     #Select Debian 64bit version for drone
