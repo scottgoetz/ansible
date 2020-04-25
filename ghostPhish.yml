@@ -160,10 +160,10 @@
       args:
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
 
-    - name: GoPhish - Build modified goPhish
-      shell: go build
-      args:
-        chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
+    #- name: GoPhish - Build modified goPhish
+    #  shell: go build
+     # args:
+     #   chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
         
     #Setup Firewall rules
     - name: Firewall - Allow to HTTP from allowed IPs and redirectors
@@ -196,4 +196,4 @@
         - "{{ allowedIPs }}"
 
     - debug: 
-        msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page.
+        msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page. Also, run go build.
