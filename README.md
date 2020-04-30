@@ -1,4 +1,4 @@
-# Offensive Ansible Automation
+# Offensive Ansible
 ## Overview
 This repository contains a number of Ansible playbooks (scripts for non-Ansible folks) that can be used to configure remote devices, install offensive security tools, and setup various types of infrastructure (phishing, web redirectors, mail servers, C2 servers).
 
