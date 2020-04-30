@@ -1,5 +1,4 @@
-# Offensive Ansible
-## Overview
+# Overview
 This repository contains a number of Ansible playbooks (scripts for non-Ansible folks) that can be used to configure remote devices, install offensive security tools, and setup various types of infrastructure (phishing, web redirectors, mail servers, C2 servers).
 
 Ansible is a "software provisioning, configuration management, and application-deployment tool."  It runs on a Unix system, and can be used to remotely manage Unix and Windows systems. Ansible is only installed on the "Server" system, it does not install Ansible agents on the client/target systems.
@@ -8,14 +7,14 @@ These playbooks are meant to be modular, they can be used independently or in co
 
 Ansible tasks use "modules" that are kind of like wrappers for OS commands, so the playbooks feel very much like writing a bash or batch script executing serial OS commands. If there isn't a module to do what you want you can just perform actions using the "command line."
 
-### Requirements
+# Requirements
  * Python 2.7 is required to be installed on the client/target:
    * apt-get install python -y
  * SSH server running on the client/target
 
 Reference this article when following the next steps:  https://www.linode.com/docs/applications/configuration-management/running-ansible-playbooks/
 
-### How to get started
+# How to get started
 #### Install Ansible and dependencies:
 1. sudo apt install ansible
 2. sudo apt install whois
