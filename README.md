@@ -41,7 +41,7 @@ Reference this article when following the next steps:  https://www.linode.com/do
   * sudo ansible-playbook --ask-pass -u root secureSetup.yml
 * Run secondary Ansible scripts to configure Client for various purposes:
   * sudo ansible-playbook -u <Client_unprivileged_user_name> <script_name>.yml --key-file <path/sshkey_rsa> --ask-become-pass
-##### For when you rebuild a Client and need to delete old keys:
+### For when you rebuild a Client and need to delete old keys:
   * sudo ssh-keygen -f "/root/.ssh/known_hosts" -R clientIp
 
 # SSL Cert Generation Requirements
