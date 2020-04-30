@@ -48,7 +48,7 @@ Reference this article when following the next steps:  https://www.linode.com/do
 ### For when you rebuild a Client and need to delete old keys
   * sudo ssh-keygen -f "/root/.ssh/known_hosts" -R clientIp
 
-# SSL Cert Generation Requirements
+# SSL cert generation requirements
 * SSL certs are generated via letsencrypt. At the time of writing, letsencrypt did not offer wildcard certificates, meaning each subdomain has to be specified when requesting the SSL cert (see webRedirector.yml). Because of this all DNS records need to point to the server (web redirector) running the letsencrypt command requesting the SSL cert, if not letsencryp will error out.
 * Make sure to setup DNS records before running the webRedirector.yml script, letsencrypt needs the records to be established in order to make SSL certs. 
   * **ALL RECORDS NEED TO INITIALLY POINT TO WEB REDIRCTOR IP BEFORE GENERATING SSL CERTS**
