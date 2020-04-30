@@ -4,7 +4,9 @@ This repository contains a number of Ansible playbooks (scripts for non-Ansible 
 
 Ansible is a "software provisioning, configuration management, and application-deployment tool."  It runs on a Unix system, and can be used to remotely manage Unix and Windows systems. Ansible is only installed on the "Server" system, it does not install Ansible agents on the client/target systems.
 
-These playbooks are meant to be modular, they can be used independently or in combnination with each other. The playbooks might not be one size fits all, but thankfully Ansible is pretty easy to understand and you can easily swap, add, or remove tasks to fit your needs. The Ansible tasks use "modules" that are kind of like wrappers for OS commands, so the playbooks feel very much like writing a bash or batch script executing serial OS commands. If there isn't a module to do what you want you can just perform actions using the "command line."
+These playbooks are meant to be modular, they can be used independently or in combnination with each other. The playbooks might not be one size fits all, but thankfully Ansible is pretty easy to understand and you can easily swap, add, or remove tasks to fit your needs. 
+
+Ansible tasks use "modules" that are kind of like wrappers for OS commands, so the playbooks feel very much like writing a bash or batch script executing serial OS commands. If there isn't a module to do what you want you can just perform actions using the "command line."
 
 ### Requirements:
  * Python 2.7 is required to be installed on the client/target:
