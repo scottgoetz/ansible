@@ -15,7 +15,8 @@
   - redirector
 
   vars:
-    unpriv_password: "<PASSWORD HASH>"
+  
+    unpriv_password: "<PASSWORD HASH>" #mkpasswd -m sha-512
     
     unprivileged_user_name: <USERNAME>
     
