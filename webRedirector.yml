@@ -31,7 +31,7 @@
 
     #htaccessFile: <path>
 
-    #htaccessRulesFile: <path>
+    #apacheModReWriteRulesFile: <path> #redirect.rules file in repository
 
     required_packages:
       - openjdk-11-jdk
@@ -183,5 +183,5 @@
     #- name: Upload .htaccess redirect rules from Ansible Server
     #  become: true
      # copy:
-     #   src: "{{ htaccessRulesFile }}"
+     #   src: "{{ apacheModReWriteRulesFile }}"
     #    dest: "/var/www/html/redirect.rules"
