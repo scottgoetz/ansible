@@ -15,7 +15,7 @@ Ansible tasks use "modules" that are kind of like wrappers for OS commands, so t
 Reference this article when following the next steps:  https://www.linode.com/docs/applications/configuration-management/running-ansible-playbooks/
 
 # How to get started
-### Install Ansible and dependencies:
+### Install Ansible and dependencies
 1. sudo apt install ansible
 2. sudo apt install whois
 3. Add Client names and IPs to Ansible "hosts" file:
