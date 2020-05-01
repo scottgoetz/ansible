@@ -22,7 +22,7 @@ Reference this article when following the next steps:  https://www.linode.com/do
    * Must match names under the "hosts" area in ansible scripts: i.e. mail, core, redirector, drone
    * sudo vi /etc/ansible/hosts
    
-### Pre setup if your client is not configured with an unprivileged user with SSH keys:
+### Pre setup if your client is not configured with an unprivileged user using SSH keys:
 1. Generate and record password hash for the new unprivilged user use in .yml files:
    * mkpasswd -m sha-512
 2. Disable host key checking:
