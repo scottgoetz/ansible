@@ -30,6 +30,7 @@ Reference this article when following the next steps:  https://www.linode.com/do
 3. sudo apt-get install sshpass
 4. Generate ssh keypairs for Clients, annotate paths for .yml files:
    * ssh-keygen
+* If this does not apply to you, modify secureSetup.yml appropriately
 
 ### Initialize playbook variables
 * Modify variables in the "vars" section of each Ansible script
