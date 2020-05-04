@@ -159,7 +159,8 @@
       shell: jq '.phish_server.key_path = "/home/{{ unpriv_user_name }}/{{ domain }}_privkey.pem"' config.json | sponge config.json
       args:
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
-
+    
+    ###This is purposefully commented out. You should review the modifications in the GoPhish models, as some of them have default values that you may want to change###
     #- name: GoPhish - Build modified goPhish
     #  shell: go build
      # args:
@@ -196,4 +197,4 @@
         - "{{ allowedIPs }}"
 
     - debug: 
-        msg: Make sure to modify models/template_context.go to update URL format, configure .htaccess file, and put content on the default page. Also, run go build.
+        msg: Make sure to modify GoPhish models before building, configure .htaccess file, and put content on the default page. Also, run go build.
