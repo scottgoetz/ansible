@@ -70,7 +70,8 @@
           EOF
       args:
         executable: /bin/bash
-        
+    
+    # I had to grab golang from this repo because of gophish requirements and it wan't in apt yet    
     - name: Set Custom apt repo for Golang 1.13
       become: true
       apt_repository:
