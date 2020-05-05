@@ -7,6 +7,7 @@ See the project's [wiki](https://github.com/scottgoetz/ansible/wiki) for documen
   * Locks down SSH
   * Implements SSH Keys
   * Create unprivileged users
+  * Updates OS and packages
 #### offensiveTools.yml
   * Installs various tools, most from source
   * Nessus, Metasploit, GoPhish, CobaltStrike, Impacket, CrackMapExec, Responder, EyeWitness
