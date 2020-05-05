@@ -508,15 +508,10 @@
           TTL: 60 min
 
           Record Type: A
-          Host: mail
+          Host: {{ mailServerIP }}
           Value: mail.{{ phishDomain.stdout }}
           TTL: 60 min
           
-          Record Type: CNAME
-          Host: www.mail
-          Value: {{ phishDomain.stdout }}
-          TTL: 60 min
-
           Record Type: TXT
           Host: @
           Value: v=spf1 a mx ip4:{{ mailServerIP }} ~all
@@ -528,7 +523,7 @@
           TTL: 60 min
           
           ===
-          Note: For AWS, you'll need to split the TXT record into two parts using quotes as per https://aws.amazon.com/premiumsupport/knowledge-center/route53-resolve-dkim-text-record-error/
+          Note: For AWS Route53 DNS, you'll need to split the TXT record into two parts using quotes as per https://aws.amazon.com/premiumsupport/knowledge-center/route53-resolve-dkim-text-record-error/
           ===
           
           Record Type: TXT
