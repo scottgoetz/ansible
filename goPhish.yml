@@ -1,4 +1,4 @@
-#!! THIS SCRIPT WAS BUILT FOR UBUNTU 19.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
+#!! THIS SCRIPT WAS BUILT FOR UBUNTU 20.04, IT MAY NOT WORK PROPERLY ON OTHER UNIX VARIANTS!!
 
 #This script sets up a modified GoPhish server
   #Change hostname
@@ -35,10 +35,11 @@
 
     required_packages:
       - mailutils
-      - golang-go
-      - golang-1.13-doc
+#      - golang-go
+#      - golang-1.13-doc
       - jq
       - moreutils
+      - build-essential
 
   tasks:    
     #Ubuntu initialization
@@ -70,12 +71,29 @@
           EOF
       args:
         executable: /bin/bash
-    
-    # I had to grab golang from this repo because of gophish requirements and it wan't in apt yet    
-    - name: Set Custom apt repo for Golang 1.13
+
+    - name: Download and extract go executable
       become: true
-      apt_repository:
-        repo: ppa:hnakamur/golang-1.13
+      shell:
+        cmd: wget -c https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz -O - | tar -xz -C /usr/local
+      args:
+        executable: /bin/bash
+
+    - name: Adjust Go path variable
+      become: true
+      shell:
+        cmd: echo export PATH=$PATH:/usr/local/go/bin >> /etc/profile
+      args:
+        executable: /bin/bash
+        
+        
+        # I had to grab golang from this repo because of gophish requirements and it wan't in apt yet... but this quit working so we're using the above build from source.
+        #    - name: Set Custom apt repo for Golang -1.13
+        #      become: true
+        #      apt_repository:
+        #        repo: ppa:hnakamur/golang-1.13   
+        
+     
         
     - name: Update apt-get repo and cache
       apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
@@ -87,7 +105,7 @@
         pkg: "{{ required_packages}}"
         
     - name: GoPhish - Download GoPhish from source using Go
-      shell: go get github.com/gophish/gophish
+      shell: /usr/local/go/bin/go get github.com/gophish/gophish
 
     - name: GoPhish - Modify config.json -- change admin server ip to all listen on all interfaces 0.0.0.0
       shell: jq '.admin_server.listen_url = "0.0.0.0:3333"' config.json | sponge config.json
@@ -115,7 +133,7 @@
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
 
     - name: GoPhish - Build modified goPhish
-      shell: go build
+      shell: /usr/local/go/bin/go build
       args:
         chdir: /home/{{ unpriv_user_name }}/go/src/github.com/gophish/gophish/
         
