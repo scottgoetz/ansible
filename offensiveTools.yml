@@ -148,13 +148,13 @@
       replace:
         dest: "{{ userHomePath }}cobaltstrike/teamserver"
         regexp: 50050
-        replace: "{{newCobaltPort}}"
+        replace: "{{ newCobaltPort }}"
 
     - name: CobaltStrike - Firewall rule to restrict access to CobaltStrike management port on 42424
       become: true
       ufw: 
         rule: allow
-        port: 42424
+        port: "{{ newCobaltPort }}"
         proto: tcp
         src: "{{ item }}"
       with_items:
