@@ -150,7 +150,7 @@
         regexp: 50050
         replace: "{{ newCobaltPort }}"
 
-    - name: CobaltStrike - Firewall rule to restrict access to CobaltStrike management port on 42424
+    - name: CobaltStrike - Firewall rule to restrict access to CobaltStrike management port
       become: true
       ufw: 
         rule: allow
