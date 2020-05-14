@@ -37,7 +37,7 @@
 
     #Create a new user in MailGun web interface
     mailgunUsername: <mailGun username>
-    mailgunPassword: <mailGun API key>
+    mailgunAPIKey: <mailGun API key>
 
     required_packages:
       - dovecot-imapd
@@ -198,7 +198,7 @@
     - name: Configure Postfix - Modify /etc/postfix/sasl_passwd with Mailgun credentials
       become: true
       shell: 
-        cmd: echo -e '[smtp.mailgun.org]:587 {{ mailgunUsername }}:{{ mailgunPassword }}' > /etc/postfix/sasl_passwd 
+        cmd: echo -e '[smtp.mailgun.org]:587 {{ mailgunUsername }}:{{ mailgunAPIKey }}' > /etc/postfix/sasl_passwd 
       args:
         executable: /bin/bash
 
