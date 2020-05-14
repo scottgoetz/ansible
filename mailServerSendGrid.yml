@@ -37,7 +37,7 @@
 
     #Create a new user in SendGrid web interface
     sendgridUsername: apikey
-    sendgridPassword: <sendGrid API key>
+    sendgridAPIKey: <sendGrid API key>
 
     required_packages:
       - dovecot-imapd
@@ -198,7 +198,7 @@
     - name: Configure Postfix - Modify /etc/postfix/sasl_passwd with Mailgun credentials
       become: true
       shell: 
-        cmd: echo -e '[smtp.sendgrid.net]:587 {{ sendgridUsername }}:{{ sendgridPassword }}' > /etc/postfix/sasl_passwd 
+        cmd: echo -e '[smtp.sendgrid.net]:587 {{ sendgridUsername }}:{{ sendgridAPIKey }}' > /etc/postfix/sasl_passwd 
       args:
         executable: /bin/bash
 
@@ -338,17 +338,17 @@
 
           Record Type: CNAME
           Host: s1._domainkey
-          Value: s1.<Value provided by SendGrid from "Sender Authentication">
+          Value: s1.<Value provided by SendGrid from "Settings > Sender Authentication">
           TTL: 60 min
 
           Record Type: CNAME
           Host: s2._domainkey
-          Value: s2.<Value provided by SendGrid from "Sender Authentication">
+          Value: s2.<Value provided by SendGrid from "Settings > Sender Authentication">
           TTL: 60 min
 
           Record Type: CNAME
-          Host: <Value provided by SendGrid from "Sender Authentication">
-          Value: <Value provided by SendGrid from "Sender Authentication">
+          Host: <Value provided by SendGrid from "Settings > Sender Authentication">
+          Value: <Value provided by SendGrid from "Settings > Sender Authentication">
           TTL: 60 min
 
           Change Mail Settings to Custom MX and Add New Record
