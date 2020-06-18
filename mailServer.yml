@@ -110,7 +110,7 @@
         pkg: "{{ required_packages}}"
 
     #Setup Firewall rules
-    - name: Firewall - Allow to HTTP from lab and redirectors
+    - name: Firewall - Allow to HTTP from allowed and redirectors
       become: true
       ufw:
         rule: allow
@@ -118,9 +118,9 @@
         src: "{{ item }}"
       with_items: 
         - "{{ webRedirector_IPs }}"
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
 
-    - name: Firewall - Allow access to HTTPS from lab and redirectors
+    - name: Firewall - Allow access to HTTPS from allowed and redirectors
       become: true
       ufw:
         rule: allow
@@ -128,7 +128,7 @@
         src: "{{ item }}"
       with_items: 
         - "{{ webRedirector_IPs }}"
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
         
     - name: Firewall - Allow related port
       become: true
@@ -138,7 +138,7 @@
         src: "{{ item }}"
       with_items: 
         - "{{ goPhishIP }}"
-        - "{{ lab_IPs }}"
+        - "{{ allowedIPs }}"
 
     - name: Firewall - Allow SMTP related port
       become: true
