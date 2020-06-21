@@ -37,6 +37,7 @@
     required_packages:
       - openjdk-11-jdk
       - apache2
+      - git
 
   tasks:   
     #Setup firewall
