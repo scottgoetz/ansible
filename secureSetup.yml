@@ -33,6 +33,7 @@
 
     optional_packages:
       - vim
+      - screen
       - net-tools
     
   tasks:     
