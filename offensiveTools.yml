@@ -49,6 +49,7 @@
       - python-pip
       - pipenv
       - ufw
+      - git
 
   tasks:
     - name: Add old Kali source
@@ -75,7 +76,7 @@
         pkg: "{{ required_packages}}"
 
     - name: update pip
-      become: yes
+      become: true
       shell: sudo pip install --upgrade pip -i https://pypi.python.org/simple
 
     #CrackMapExec
