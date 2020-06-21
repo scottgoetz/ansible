@@ -55,9 +55,13 @@
     - name: Add old Kali source
       become: true
       apt_repository:
-        repo: deb http://old.kali.org/kali moto main non-free contribssss
+        repo: deb http://old.kali.org/kali moto main non-free contrib
         state: present
 
+    - name: Update APT Keys #old kali repository will fail without
+      become: true
+      shell: "apt-key adv --keyserver hkp://keys.gnupg.net --recv-keys 7D8D0BF6"
+      
     - name: Update APT package cache
       become: true
       apt: 
